@@ -1,0 +1,6 @@
+{
+  "name": "NextLevel Gaming",
+  "description": "Discover the Next Generation of Gaming: Premium PC gaming news, upcoming AAA games, release calendar, game stories, and hardware requirements.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
