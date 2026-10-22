@@ -101,10 +101,10 @@ export const HeroCarousel: React.FC<HeroCarouselProps> = ({
             {/* Platform and Genre Details */}
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
               <span className="text-slate-500 font-medium">Platforms:</span>
-              <span>{currentGame.platforms.join(', ')}</span>
+              <span>{Array.isArray(currentGame.platforms) ? currentGame.platforms.join(', ') : 'PC'}</span>
               <span aria-hidden="true" className="text-slate-600">·</span>
               <span className="text-slate-500 font-medium">Genre:</span>
-              <span>{currentGame.genres.join(', ')}</span>
+              <span>{Array.isArray(currentGame.genres) ? currentGame.genres.join(', ') : 'Action and Adventure'}</span>
             </div>
 
             {/* Action Buttons */}

@@ -33,25 +33,36 @@ export const GameDetailPage: React.FC<GameDetailPageProps> = ({
   const [activeSection, setActiveSection] = useState<string>('overview');
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (initialTab === 'story') {
-      const el = document.getElementById('story-lore');
-      if (el) el.scrollIntoView({ behavior: 'smooth' });
+    try {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (initialTab === 'story') {
+        const el = document.getElementById('story-lore');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    } catch (e) {
+      console.warn(e);
     }
-  }, [game.slug, initialTab]);
+  }, [game?.slug, initialTab]);
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const relatedGames = allGames
-    .filter((g) => g.id !== game.id && g.genres.some((genre) => game.genres.includes(genre)))
+  const gameGenres = Array.isArray(game?.genres) ? game.genres : [];
+  const relatedGames = (allGames || [])
+    .filter((g) => g?.id !== game?.id && Array.isArray(g?.genres) && g.genres.some((genre) => gameGenres.includes(genre)))
     .slice(0, 3);
 
-  const relatedArticles = allNews
-    .filter((n) => n.relatedGameSlug === game.slug || n.tags.some((t) => game.title.includes(t)))
+  const relatedArticles = (allNews || [])
+    .filter((n) => n?.relatedGameSlug === game?.slug || (Array.isArray(n?.tags) && n.tags.some((t) => game?.title?.toLowerCase().includes(t.toLowerCase()))))
     .slice(0, 2);
 
   const tableOfContents = [
@@ -69,11 +80,15 @@ export const GameDetailPage: React.FC<GameDetailPageProps> = ({
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
-    const element = document.getElementById(id);
-    if (element) {
-      const yOffset = -80;
-      const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      window.scrollTo({ top: y, behavior: 'smooth' });
+    try {
+      const element = document.getElementById(id);
+      if (element) {
+        const yOffset = -80;
+        const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+        window.scrollTo({ top: y, behavior: 'smooth' });
+      }
+    } catch (e) {
+      console.warn(e);
     }
   };
 

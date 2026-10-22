@@ -33,8 +33,23 @@ const CATEGORIES: GameCategory[] = [
 ];
 
 export default function App() {
-  const [games, setGames] = useState<Game[]>([]);
-  const [news, setNews] = useState<NewsArticle[]>([]);
+  // Synchronously initialize with storage data so first paint is immediate and populated
+  const [games, setGames] = useState<Game[]>(() => {
+    try {
+      return storageService.getGames();
+    } catch {
+      return [];
+    }
+  });
+
+  const [news, setNews] = useState<NewsArticle[]>(() => {
+    try {
+      return storageService.getNews();
+    } catch {
+      return [];
+    }
+  });
+
   const [currentView, setCurrentView] = useState<'home' | 'upcoming' | 'stories' | 'calendar' | 'news' | 'hardware' | 'admin' | 'game-detail' | 'news-detail'>('home');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [selectedNews, setSelectedNews] = useState<NewsArticle | null>(null);
@@ -56,12 +71,16 @@ export default function App() {
     sortBy: 'featured'
   });
 
-  // Load storage data and subscribe
+  // Subscribe to storage changes
   useEffect(() => {
     const loadData = () => {
-      setGames(storageService.getGames());
-      setNews(storageService.getNews());
-      setIsAdminLoggedIn(storageService.isAdminAuthenticated());
+      try {
+        setGames(storageService.getGames());
+        setNews(storageService.getNews());
+        setIsAdminLoggedIn(storageService.isAdminAuthenticated());
+      } catch (err) {
+        console.warn('Storage sync error', err);
+      }
     };
 
     loadData();
@@ -69,88 +88,136 @@ export default function App() {
     return () => unsubscribe();
   }, []);
 
-  // Sync browser URL parameters on initial load
+  // Sync browser URL parameters on initial load safely
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const gameSlug = params.get('game');
-    const newsSlug = params.get('news');
-    const tab = params.get('tab');
+    try {
+      if (typeof window === 'undefined') return;
+      const params = new URLSearchParams(window.location.search);
+      const gameSlug = params.get('game');
+      const newsSlug = params.get('news');
+      const tab = params.get('tab');
 
-    if (gameSlug) {
-      const found = storageService.getGameBySlug(gameSlug);
-      if (found) {
-        setSelectedGame(found);
-        setCurrentView('game-detail');
-        return;
+      if (gameSlug) {
+        const found = storageService.getGameBySlug(gameSlug);
+        if (found) {
+          setSelectedGame(found);
+          setCurrentView('game-detail');
+          return;
+        }
       }
-    }
 
-    if (newsSlug) {
-      const found = storageService.getNewsBySlug(newsSlug);
-      if (found) {
-        setSelectedNews(found);
-        setCurrentView('news-detail');
-        return;
+      if (newsSlug) {
+        const found = storageService.getNewsBySlug(newsSlug);
+        if (found) {
+          setSelectedNews(found);
+          setCurrentView('news-detail');
+          return;
+        }
       }
-    }
 
-    if (tab && ['home', 'upcoming', 'stories', 'calendar', 'news', 'hardware', 'admin'].includes(tab)) {
-      setCurrentView(tab as any);
+      if (tab && ['home', 'upcoming', 'stories', 'calendar', 'news', 'hardware', 'admin'].includes(tab)) {
+        setCurrentView(tab as any);
+      }
+    } catch (e) {
+      console.warn('URL param parse error', e);
     }
   }, []);
 
-  // Update dynamic document title & meta description for SEO
+  // Update dynamic document title & meta description safely
   useEffect(() => {
-    if (currentView === 'game-detail' && selectedGame) {
-      document.title = `${selectedGame.title} – PC Story, Release Date & Specs | NextLevel`;
-    } else if (currentView === 'news-detail' && selectedNews) {
-      document.title = `${selectedNews.title} | NextLevel Gaming`;
-    } else if (currentView === 'calendar') {
-      document.title = 'PC Game Release Calendar 2025-2027 | NextLevel Gaming';
-    } else if (currentView === 'hardware') {
-      document.title = 'PC Hardware Specs & System Benchmark | NextLevel Gaming';
-    } else if (currentView === 'admin') {
-      document.title = 'Editorial Admin CMS | NextLevel Gaming';
-    } else {
-      document.title = 'NextLevel Gaming – Discover the Next Generation of PC Gaming';
+    try {
+      if (typeof document === 'undefined') return;
+      if (currentView === 'game-detail' && selectedGame) {
+        document.title = `${selectedGame.title} – PC Story, Release Date & Specs | NextLevel`;
+      } else if (currentView === 'news-detail' && selectedNews) {
+        document.title = `${selectedNews.title} | NextLevel Gaming`;
+      } else if (currentView === 'calendar') {
+        document.title = 'PC Game Release Calendar 2025-2027 | NextLevel Gaming';
+      } else if (currentView === 'hardware') {
+        document.title = 'PC Hardware Specs & System Benchmark | NextLevel Gaming';
+      } else if (currentView === 'admin') {
+        document.title = 'Editorial Admin CMS | NextLevel Gaming';
+      } else {
+        document.title = 'NextLevel Gaming – Discover the Next Generation of PC Gaming';
+      }
+    } catch (e) {
+      console.warn(e);
     }
   }, [currentView, selectedGame, selectedNews]);
 
-  // Navigation Handlers
-  const handleNavigate = (tab: string, param?: string) => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Safe Navigation Handler
+  const handleNavigate = (tab: string) => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {}
+
     setSelectedGame(null);
     setSelectedNews(null);
-    
-    // Update URL query
-    const url = new URL(window.location.href);
-    url.searchParams.delete('game');
-    url.searchParams.delete('news');
-    url.searchParams.set('tab', tab);
-    window.history.pushState({}, '', url.toString());
-
     setCurrentView(tab as any);
+    
+    // Safely attempt pushState without crashing if restricted
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('game');
+        url.searchParams.delete('news');
+        url.searchParams.set('tab', tab);
+        window.history.pushState({}, '', url.toString());
+      }
+    } catch (e) {
+      // In iframes pushState might be blocked; view state is already updated
+    }
   };
 
   const handleSelectGame = (game: Game, tabFocus: 'story' | 'overview' = 'overview') => {
+    if (!game) return;
     setSelectedGame(game);
     setGameDetailInitialTab(tabFocus);
     setCurrentView('game-detail');
-    const url = new URL(window.location.href);
-    url.searchParams.delete('news');
-    url.searchParams.delete('tab');
-    url.searchParams.set('game', game.slug);
-    window.history.pushState({}, '', url.toString());
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {}
+
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('news');
+        url.searchParams.delete('tab');
+        url.searchParams.set('game', game.slug);
+        window.history.pushState({}, '', url.toString());
+      }
+    } catch (e) {
+      // Ignore pushState failure in iframe
+    }
   };
 
   const handleSelectNews = (article: NewsArticle) => {
+    if (!article) return;
     setSelectedNews(article);
     setCurrentView('news-detail');
-    const url = new URL(window.location.href);
-    url.searchParams.delete('game');
-    url.searchParams.delete('tab');
-    url.searchParams.set('news', article.slug);
-    window.history.pushState({}, '', url.toString());
+
+    try {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {}
+
+    try {
+      if (typeof window !== 'undefined' && window.history && window.history.pushState) {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('game');
+        url.searchParams.delete('tab');
+        url.searchParams.set('news', article.slug);
+        window.history.pushState({}, '', url.toString());
+      }
+    } catch (e) {
+      // Ignore pushState failure in iframe
+    }
   };
 
   const handlePlayTrailer = (youtubeId: string, title: string) => {
@@ -158,27 +225,37 @@ export default function App() {
   };
 
   const handleSelectCategory = (cat: GameCategory) => {
-    setFilters({ ...filters, genre: cat, searchQuery: '' });
+    setFilters((prev) => ({ ...prev, genre: cat, searchQuery: '' }));
     setCurrentView('upcoming');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    try {
+      if (typeof window !== 'undefined') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch {}
   };
 
-  // Filter and Sort Games
+  // Filter and Sort Games safely
   const uniqueDevelopers = useMemo(() => {
-    return Array.from(new Set(games.map((g) => g.developer))).sort();
+    const devs = new Set<string>();
+    games.forEach((g) => {
+      if (g?.developer) devs.add(g.developer);
+    });
+    return Array.from(devs).sort();
   }, [games]);
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
+      if (!game) return false;
+
       // Search
       if (filters.searchQuery.trim()) {
         const q = filters.searchQuery.toLowerCase();
-        const matchesTitle = game.title.toLowerCase().includes(q);
-        const matchesDev = game.developer.toLowerCase().includes(q);
-        const matchesEngine = game.engine.toLowerCase().includes(q);
-        const matchesGenre = game.genres.some((gen) => gen.toLowerCase().includes(q));
-        const matchesChar = game.characters.some((c) => c.name.toLowerCase().includes(q));
-        const matchesOverview = game.overview.toLowerCase().includes(q);
+        const matchesTitle = game.title?.toLowerCase().includes(q) || false;
+        const matchesDev = game.developer?.toLowerCase().includes(q) || false;
+        const matchesEngine = game.engine?.toLowerCase().includes(q) || false;
+        const matchesGenre = Array.isArray(game.genres) && game.genres.some((gen) => gen?.toLowerCase().includes(q));
+        const matchesChar = Array.isArray(game.characters) && game.characters.some((c) => c?.name?.toLowerCase().includes(q));
+        const matchesOverview = game.overview?.toLowerCase().includes(q) || false;
         if (!matchesTitle && !matchesDev && !matchesEngine && !matchesGenre && !matchesChar && !matchesOverview) {
           return false;
         }
@@ -197,7 +274,7 @@ export default function App() {
 
       // Genre
       if (filters.genre !== 'all') {
-        if (!game.genres.includes(filters.genre as GameCategory)) return false;
+        if (!Array.isArray(game.genres) || !game.genres.includes(filters.genre as GameCategory)) return false;
       }
 
       // Developer
@@ -210,7 +287,9 @@ export default function App() {
         if (filters.releaseYear === 'TBA') {
           if (game.releaseStatus !== 'TBA') return false;
         } else {
-          if (!game.releaseDate.includes(filters.releaseYear) && !game.releaseDateSortable.startsWith(filters.releaseYear)) {
+          const matchDate = game.releaseDate?.includes(filters.releaseYear) || false;
+          const matchSort = game.releaseDateSortable?.startsWith(filters.releaseYear) || false;
+          if (!matchDate && !matchSort) {
             return false;
           }
         }
@@ -218,12 +297,15 @@ export default function App() {
 
       // Hardware tier
       if (filters.hardwareTier !== 'all') {
+        const minGpu = game.minRequirements?.gpu || '';
+        const recGpu = game.recommendedRequirements?.gpu || '';
+
         if (filters.hardwareTier === 'accessible') {
-          if (!game.minRequirements.gpu.includes('1060') && !game.minRequirements.gpu.includes('1660') && !game.minRequirements.gpu.includes('650')) {
+          if (!minGpu.includes('1060') && !minGpu.includes('1660') && !minGpu.includes('650')) {
             return false;
           }
         } else if (filters.hardwareTier === 'highend') {
-          if (!game.recommendedRequirements.gpu.includes('4070') && !game.recommendedRequirements.gpu.includes('4080') && !game.recommendedRequirements.gpu.includes('7900')) {
+          if (!recGpu.includes('4070') && !recGpu.includes('4080') && !recGpu.includes('7900')) {
             return false;
           }
         }
@@ -242,20 +324,20 @@ export default function App() {
       if (filters.sortBy === 'releaseDate') {
         if (a.releaseStatus === 'TBA' && b.releaseStatus !== 'TBA') return 1;
         if (b.releaseStatus === 'TBA' && a.releaseStatus !== 'TBA') return -1;
-        return a.releaseDateSortable.localeCompare(b.releaseDateSortable);
+        return (a.releaseDateSortable || '').localeCompare(b.releaseDateSortable || '');
       }
       if (filters.sortBy === 'newest') {
-        return b.id.localeCompare(a.id);
+        return (b.id || '').localeCompare(a.id || '');
       }
       return 0;
     });
   }, [games, filters]);
 
-  // Section collections
-  const upcomingGames = games.filter((g) => !g.isReleased);
-  const recentlyReleasedGames = games.filter((g) => g.isReleased);
-  const storyGames = games.filter((g) => g.storyConfirmed.length > 50 || g.worldBuilding.length > 50);
-  const trendingGames = [...games].sort((a, b) => (b.rankingScore || 0) - (a.rankingScore || 0)).slice(0, 5);
+  // Section collections with safe checks
+  const upcomingGames = useMemo(() => games.filter((g) => !g?.isReleased), [games]);
+  const recentlyReleasedGames = useMemo(() => games.filter((g) => Boolean(g?.isReleased)), [games]);
+  const storyGames = useMemo(() => games.filter((g) => (g?.storyConfirmed?.length || 0) > 30), [games]);
+  const trendingGames = useMemo(() => [...games].sort((a, b) => (b.rankingScore || 0) - (a.rankingScore || 0)).slice(0, 5), [games]);
 
   return (
     <div className="min-h-screen bg-[#08090d] text-[#e2e8f0] flex flex-col font-sans selection:bg-purple-600/30 selection:text-white">
@@ -266,16 +348,18 @@ export default function App() {
         onNavigate={handleNavigate}
         onOpenSearch={() => {
           setCurrentView('upcoming');
-          window.scrollTo({ top: 300, behavior: 'smooth' });
+          try {
+            window.scrollTo({ top: 300, behavior: 'smooth' });
+          } catch {}
         }}
         isAdmin={isAdminLoggedIn}
       />
 
       {/* Main Content Router */}
-      <div className="flex-1">
+      <main className="flex-1">
         
         {/* VIEW 1: GAME DETAIL PAGE */}
-        {currentView === 'game-detail' && selectedGame && (
+        {currentView === 'game-detail' && selectedGame ? (
           <GameDetailPage
             game={selectedGame}
             allGames={games}
@@ -286,10 +370,22 @@ export default function App() {
             onPlayTrailer={handlePlayTrailer}
             initialTab={gameDetailInitialTab}
           />
-        )}
+        ) : currentView === 'game-detail' ? (
+          // Fallback if game not found
+          <div className="max-w-md mx-auto py-20 px-4 text-center space-y-4">
+            <h2 className="text-xl font-bold text-white">Game Not Found</h2>
+            <p className="text-xs text-slate-400">The selected PC game title could not be loaded.</p>
+            <button
+              onClick={() => handleNavigate('home')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg"
+            >
+              Return to Catalog
+            </button>
+          </div>
+        ) : null}
 
         {/* VIEW 2: NEWS DETAIL PAGE */}
-        {currentView === 'news-detail' && selectedNews && (
+        {currentView === 'news-detail' && selectedNews ? (
           <NewsDetailPage
             article={selectedNews}
             allNews={news}
@@ -298,7 +394,18 @@ export default function App() {
             onSelectGame={handleSelectGame}
             onSelectNews={handleSelectNews}
           />
-        )}
+        ) : currentView === 'news-detail' ? (
+          <div className="max-w-md mx-auto py-20 px-4 text-center space-y-4">
+            <h2 className="text-xl font-bold text-white">Article Not Found</h2>
+            <p className="text-xs text-slate-400">The requested editorial article was not found.</p>
+            <button
+              onClick={() => handleNavigate('news')}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold rounded-lg"
+            >
+              Return to News
+            </button>
+          </div>
+        ) : null}
 
         {/* VIEW 3: RELEASE CALENDAR */}
         {currentView === 'calendar' && (
@@ -325,7 +432,7 @@ export default function App() {
               setGames(storageService.getGames());
               setNews(storageService.getNews());
             }}
-            onExit={() => setCurrentView('home')}
+            onExit={() => handleNavigate('home')}
           />
         )}
 
@@ -358,7 +465,7 @@ export default function App() {
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0e121c] via-transparent to-transparent" />
                     <div className="absolute top-3 left-3 bg-slate-900/90 border border-slate-700/80 px-2 py-0.5 rounded text-[11px] font-semibold text-purple-300">
-                      {game.genres[0]}
+                      {game.genres?.[0] || 'Lore'}
                     </div>
                   </div>
 
@@ -413,7 +520,7 @@ export default function App() {
           <div>
             
             {/* Hero Carousel on Home */}
-            {currentView === 'home' && (
+            {currentView === 'home' && games.length > 0 && (
               <HeroCarousel
                 games={games}
                 onSelectGame={handleSelectGame}
@@ -637,7 +744,7 @@ export default function App() {
           </div>
         )}
 
-      </div>
+      </main>
 
       {/* Trailer Playback Modal */}
       {trailerData && (
@@ -662,7 +769,11 @@ export default function App() {
         onSelectCategory={handleSelectCategory}
         onOpenSeo={() => setIsSeoModalOpen(true)}
         onOpenAdmin={() => handleNavigate('admin')}
-        onScrollToTop={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        onScrollToTop={() => {
+          try {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          } catch {}
+        }}
       />
 
     </div>

@@ -195,7 +195,9 @@ export const ReleaseCalendar: React.FC<ReleaseCalendarProps> = ({ games, onSelec
                     <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
                       {getStatusBadge(game.releaseStatus)}
                       <span aria-hidden="true" className="text-slate-600">·</span>
-                      <span className="text-purple-400 font-medium">{game.genres[0]}</span>
+                      <span className="text-purple-400 font-medium">
+                        {Array.isArray(game.genres) && game.genres.length > 0 ? game.genres[0] : 'PC Game'}
+                      </span>
                       <span aria-hidden="true" className="text-slate-600">·</span>
                       <span>{game.developer}</span>
                     </div>
@@ -205,7 +207,7 @@ export const ReleaseCalendar: React.FC<ReleaseCalendarProps> = ({ games, onSelec
                     </h2>
 
                     <p className="text-xs text-slate-400 line-clamp-1">
-                      Engine: {game.engine} · Platforms: {game.platforms.join(', ')}
+                      Engine: {game.engine} · Platforms: {Array.isArray(game.platforms) ? game.platforms.join(', ') : 'PC'}
                     </p>
                   </div>
                 </div>

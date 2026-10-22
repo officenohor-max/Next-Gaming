@@ -34,7 +34,7 @@ export const GameCard: React.FC<GameCardProps> = ({
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center bg-gradient-to-br from-slate-900 via-purple-950/30 to-slate-900 p-4 text-center">
             <span className="text-sm font-bold text-slate-400">{game.title}</span>
-            <span className="text-xs text-slate-500 mt-1">{game.genres.join(', ')}</span>
+            <span className="text-xs text-slate-500 mt-1">{Array.isArray(game.genres) ? game.genres.join(', ') : 'PC Game'}</span>
           </div>
         )}
 
@@ -68,7 +68,9 @@ export const GameCard: React.FC<GameCardProps> = ({
         <div className="space-y-2">
           {/* Unboxed Metadata Line with typographic separators */}
           <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-400">
-            <span className="text-purple-400 font-medium">{game.genres[0]}</span>
+            <span className="text-purple-400 font-medium">
+              {Array.isArray(game.genres) && game.genres.length > 0 ? game.genres[0] : 'Action'}
+            </span>
             <span aria-hidden="true" className="text-slate-600">·</span>
             <span>{game.developer}</span>
             {game.engine && (

@@ -48,7 +48,13 @@ export const NewsDetailPage: React.FC<NewsDetailPageProps> = ({
   ]);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(window.location.href);
+    try {
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(window.location.href);
+      }
+    } catch (e) {
+      console.warn(e);
+    }
     setCopiedLink(true);
     setTimeout(() => setCopiedLink(false), 2500);
   };
@@ -68,11 +74,11 @@ export const NewsDetailPage: React.FC<NewsDetailPageProps> = ({
     setCommentText('');
   };
 
-  const relatedGame = article.relatedGameSlug
-    ? allGames.find((g) => g.slug === article.relatedGameSlug)
+  const relatedGame = article?.relatedGameSlug
+    ? (allGames || []).find((g) => g?.slug === article.relatedGameSlug)
     : undefined;
 
-  const moreArticles = allNews.filter((n) => n.id !== article.id).slice(0, 3);
+  const moreArticles = (allNews || []).filter((n) => n?.id !== article?.id).slice(0, 3);
 
   return (
     <article className="min-h-screen bg-[#08090d] text-slate-200 pb-20">

@@ -219,20 +219,20 @@ export const SystemRequirementsChecker: React.FC<SystemRequirementsCheckerProps>
                 <div className="space-y-2 p-3 rounded-lg bg-slate-900/60 border border-slate-800/80">
                   <span className="font-bold text-slate-300 block">Minimum Spec</span>
                   <div className="text-slate-400 space-y-1">
-                    <div>CPU: <span className="text-slate-200">{activeGame.minRequirements.cpu}</span></div>
-                    <div>GPU: <span className="text-slate-200">{activeGame.minRequirements.gpu}</span></div>
-                    <div>RAM: <span className="text-slate-200">{activeGame.minRequirements.ram}</span></div>
-                    <div>Storage: <span className="text-slate-200">{activeGame.minRequirements.storage}</span></div>
+                    <div>CPU: <span className="text-slate-200">{activeGame.minRequirements?.cpu || 'Intel Core i5 / AMD Ryzen 5'}</span></div>
+                    <div>GPU: <span className="text-slate-200">{activeGame.minRequirements?.gpu || 'GTX 1060 / RX 580'}</span></div>
+                    <div>RAM: <span className="text-slate-200">{activeGame.minRequirements?.ram || '16 GB'}</span></div>
+                    <div>Storage: <span className="text-slate-200">{activeGame.minRequirements?.storage || '100 GB SSD'}</span></div>
                   </div>
                 </div>
 
                 <div className="space-y-2 p-3 rounded-lg bg-purple-950/20 border border-purple-900/40">
                   <span className="font-bold text-purple-300 block">Recommended Spec</span>
                   <div className="text-slate-400 space-y-1">
-                    <div>CPU: <span className="text-slate-200">{activeGame.recommendedRequirements.cpu}</span></div>
-                    <div>GPU: <span className="text-slate-200">{activeGame.recommendedRequirements.gpu}</span></div>
-                    <div>RAM: <span className="text-slate-200">{activeGame.recommendedRequirements.ram}</span></div>
-                    <div>Storage: <span className="text-slate-200">{activeGame.recommendedRequirements.storage}</span></div>
+                    <div>CPU: <span className="text-slate-200">{activeGame.recommendedRequirements?.cpu || 'Intel Core i7 / AMD Ryzen 7'}</span></div>
+                    <div>GPU: <span className="text-slate-200">{activeGame.recommendedRequirements?.gpu || 'RTX 4070 / RX 7800 XT'}</span></div>
+                    <div>RAM: <span className="text-slate-200">{activeGame.recommendedRequirements?.ram || '32 GB'}</span></div>
+                    <div>Storage: <span className="text-slate-200">{activeGame.recommendedRequirements?.storage || '100 GB NVMe SSD'}</span></div>
                   </div>
                 </div>
               </div>
